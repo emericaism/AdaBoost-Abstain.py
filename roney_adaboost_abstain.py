@@ -6,8 +6,6 @@ import math
 import random
 
 
-
-
 def get_data(filename=str,NFold = 1):
 	''' 
 	Collects the data from the master file
