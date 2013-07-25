@@ -6,7 +6,10 @@ import math
 import random
 
 
-def get_data(filename=str,NFold = 1):
+#def reshuffle()
+#def train_on_future_economists_only
+
+def get_data(filename=str,KFold = 1):
 	''' 
 	Collects the data from the master file
 	cleans it in the form of a dictionary of historical estimates.
@@ -41,7 +44,7 @@ def get_data(filename=str,NFold = 1):
 	train_dates = []
 	dates = []
 
-	if NFold == 1:
+	if KFold == 1:
 		with open(filename, "rU") as f:
 		    reader = csv.reader(f, delimiter="\t")
 		    #a = zip(rows)
@@ -52,6 +55,8 @@ def get_data(filename=str,NFold = 1):
 		    for i, line in enumerate(reader):
 
 		    	#Get weightings by date!
+		    	#if i == 0:
+		    	#	continue
 		    	if i == 0:
 		    		continue
 		    	if i == 1:
@@ -61,7 +66,7 @@ def get_data(filename=str,NFold = 1):
 		    		avg_weight = 1/len(dates)
 		    		for date in dates:
 		    			d_weights[date] = avg_weight
-		    		prediction_table[1] = dates
+		    		#prediction_table[1] = dates
 		    		continue
 
 		    	#Get predictions by Economist
@@ -76,7 +81,7 @@ def get_data(filename=str,NFold = 1):
 
 	#This is the case where we are dividing the data up into
 	#training data and test data.
-	if NFold == 2:
+	if KFold == 2:
 		''' 
 		Collects the data from the master file
 		cleans it in the form of a dictionary of historical estimates.
@@ -91,20 +96,28 @@ def get_data(filename=str,NFold = 1):
 		    	if i == 0:
 		    		continue
 		    	if i == 1:
+		    		#need to clear commas from names in Sheet
 					prediction_table = np.genfromtxt(filename, delimiter=',')
+					print prediction_table
 					prediction_table[1] = ['nan'] + range(len(prediction_table[2])-1)
 					prediction_table = np.delete(prediction_table, (0), axis=0)
 					prediction_table = np.delete(prediction_table, (0), axis=1)
-					print prediction_table
+					#print prediction_table
 					np.random.shuffle(prediction_table.T)
-					print prediction_table
+					#print prediction_table
 					dates.extend(line[0].split(','))
 					dates.pop(0)
 					dates = filter(lambda x: len(x)>0 , dates)
-					dates = [ dates[int(i)] for i in prediction_table[0]]
-					print dates
-					train_dates = dates[:int(len(dates)/2)]
-					test_dates = dates[int(len(dates)/2):-1]
+					dates = [dates[int(i)] for i in prediction_table[0]]
+					#print dates
+
+					# n = len(dates)
+					# print "n mod k == 0: ", n % k == 0
+					# date_lists = chunkIt(dates,KFold)
+
+					#divide into two lists, training data and test data
+					[train_dates,test_dates] = chunkIt(dates,2)
+
 					dates = train_dates
 					avg_weight = 1/len(dates)
 					for date in dates:
@@ -114,9 +127,9 @@ def get_data(filename=str,NFold = 1):
 		    	#Get predictions by Economist
 		    	predictions = line[0].split(',')
 		    	economist = predictions[0]
-		    	predictions.pop(0)
-		    	predictions = filter(lambda x: x!='' and x!=' ' , predictions)
-		    	predictions = [int(j) for j in predictions]
+		    	# predictions.pop(0)
+		    	# predictions = filter(lambda x: x!='' and x!=' ' , predictions)
+		    	# predictions = [int(j) for j in predictions]
 
 		    	predictions = prediction_table[i-1]
 		    	predictions = [int(j) for j in predictions]
@@ -124,6 +137,17 @@ def get_data(filename=str,NFold = 1):
 		    	test_predictions = predictions[int(len(predictions)/2):len(predictions)]
 		    	d_predictions[economist] = train_predictions
 		    	d_testpredictions[economist] = test_predictions
+
+def chunkIt(seq, num):
+  avg = len(seq) / float(num)
+  out = []
+  last = 0.0
+
+  while last < len(seq):
+    out.append(seq[int(last):int(last + avg)])
+    last += avg
+
+  return out
 
 def invert_bad_economists():
 	for economist in d_error.keys():
@@ -269,12 +293,9 @@ def show_HFinal():
 
 
 if __name__ == '__main__':
-	get_data("unemp_EX2.csv",2)
+	get_data("ADP CHNG Index.csv",1)
 	compute_errors()
 	compute_D_Z()
 	invert_bad_economists()
 	boost(50)
 	show_HFinal()
-
-
-	
