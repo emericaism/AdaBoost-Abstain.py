@@ -47,16 +47,9 @@ def get_data(filename=str,KFold = 1):
 	if KFold == 1:
 		with open(filename, "rU") as f:
 		    reader = csv.reader(f, delimiter="\t")
-		    #a = zip(rows)
-
-		    #prediction_table_T = prediction_table.T
-		    #np.random.shuffle(prediction_table_T)
-		    #print rows
 		    for i, line in enumerate(reader):
 
 		    	#Get weightings by date!
-		    	#if i == 0:
-		    	#	continue
 		    	if i == 0:
 		    		continue
 		    	if i == 1:
@@ -66,21 +59,20 @@ def get_data(filename=str,KFold = 1):
 		    		avg_weight = 1/len(dates)
 		    		for date in dates:
 		    			d_weights[date] = avg_weight
-		    		#prediction_table[1] = dates
 		    		continue
 
 		    	#Get predictions by Economist
 		    	predictions = line[0].split(',')
 		    	economist = predictions[0]
 		    	predictions.pop(0)
-		    	#print predictions
 		    	predictions = filter(lambda x: x!='' and x!=' ' , predictions)
 		    	predictions = [int(j) for j in predictions]
-		    	#print predictions
 		    	d_predictions[economist] = predictions
 
 	#This is the case where we are dividing the data up into
 	#training data and test data.
+
+	#I think we should forget the 2-Fold CV, and do (n-1) points for training data and 1 test point.
 	if KFold == 2:
 		''' 
 		Collects the data from the master file
@@ -97,23 +89,16 @@ def get_data(filename=str,KFold = 1):
 		    		continue
 		    	if i == 1:
 		    		#need to clear commas from names in Sheet
-					prediction_table = np.genfromtxt(filename, delimiter=',')
-					print prediction_table
+					prediction_table = np.genfromtxt(filename, dtype=None, delimiter=',')
 					prediction_table[1] = ['nan'] + range(len(prediction_table[2])-1)
 					prediction_table = np.delete(prediction_table, (0), axis=0)
 					prediction_table = np.delete(prediction_table, (0), axis=1)
-					#print prediction_table
 					np.random.shuffle(prediction_table.T)
-					#print prediction_table
 					dates.extend(line[0].split(','))
 					dates.pop(0)
 					dates = filter(lambda x: len(x)>0 , dates)
 					dates = [dates[int(i)] for i in prediction_table[0]]
-					#print dates
 
-					# n = len(dates)
-					# print "n mod k == 0: ", n % k == 0
-					# date_lists = chunkIt(dates,KFold)
 
 					#divide into two lists, training data and test data
 					[train_dates,test_dates] = chunkIt(dates,2)
@@ -138,16 +123,71 @@ def get_data(filename=str,KFold = 1):
 		    	d_predictions[economist] = train_predictions
 		    	d_testpredictions[economist] = test_predictions
 
+	if KFold == 3:
+		''' 
+		Collects the data from the master file
+		cleans it in the form of a dictionary of historical estimates.
+		Keys are economists
+		Values are List of lists containing predictions.
+		'''
+		with open(filename, "rU") as f:
+		    reader = csv.reader(f, delimiter="\t")
+		    for i, line in enumerate(reader):
+
+		    	#Get weightings by date!
+		    	if i == 0:
+		    		continue
+		    	if i == 1:
+		    		#need to clear commas from names in Sheet
+					prediction_table = np.genfromtxt(filename, dtype=None, delimiter=',')
+					prediction_table[1] = ['nan'] + range(len(prediction_table[2])-1)
+					print prediction_table[1]
+					prediction_table = np.delete(prediction_table, (0), axis=0)
+					prediction_table = np.delete(prediction_table, (0), axis=1)
+					np.random.shuffle(prediction_table.T)
+
+					dates.extend(line[0].split(','))
+					dates.pop(0)
+					dates = filter(lambda x: len(x)>0 , dates)
+					dates = [dates[int(i)] for i in prediction_table[0]]
+
+					test_date = dates[-1]
+					dates.pop()
+
+					test_table = prediction_table.T[-1]
+					prediction_table = np.delete(prediction_table,(len(prediction_table[0])-1), axis=1)
+
+					avg_weight = 1/len(dates)
+					#print len(dates)
+					for date in dates:
+						d_weights[date] = avg_weight
+					continue
+
+		    	#Get predictions by Economist
+		    	predictions = line[0].split(',')
+		    	economist = predictions[0]
+		    	predictions = prediction_table[i-1]
+		    	predictions = [int(j) for j in predictions]
+		    	train_predictions = predictions[:len(predictions)-1]
+		    	test_prediction = predictions[-1]
+		    	d_predictions[economist] = train_predictions
+		    	d_testpredictions[economist] = test_prediction
+
+
+    	for economist in d_testpredictions.keys():
+			if d_testpredictions[economist] == 0:
+				del d_predictions[economist]
+
 def chunkIt(seq, num):
-  avg = len(seq) / float(num)
-  out = []
-  last = 0.0
+	avg = len(seq) / float(num)
+	out = []
+	last = 0.0
 
-  while last < len(seq):
-    out.append(seq[int(last):int(last + avg)])
-    last += avg
+	while last < len(seq):
+		out.append(seq[int(last):int(last + avg)])
+		last += avg
 
-  return out
+	return out
 
 def invert_bad_economists():
 	for economist in d_error.keys():
@@ -180,9 +220,7 @@ def invert_bad_economists():
 def keywithminval(d1):
 	temp = d1.copy()
 	if len(d_alpha.keys()) > 0:
-		print d_alpha
 		for economist in d_alpha.keys():
-			#print economist in temp.keys()
 			del temp[economist]
 	v=list(temp.values())
 	k=list(temp.keys())
@@ -210,7 +248,7 @@ def boost(rounds=int):
 			break
 		d_alpha[classifier_economist] = alpha
 		reweight_against(classifier_economist)
-		compute_errors()
+		compute_errors2()
 		compute_D_Z()
 
 def reweight_against(economist=str):
@@ -226,7 +264,6 @@ def reweight_against(economist=str):
 			d_weights[day] = d_weights[day]/float(correct_divisor)
 			#print 'He was Correct: ', d_weights[day]
 
-		
 		elif predictions[i] == -1:
 			d_weights[day] = d_weights[day]/float(incorrect_divisor)
 			#print 'He was Wrong: ', d_weights[day]
@@ -242,7 +279,36 @@ def compute_errors():
 		curr_correct = 0.0
 		curr_abstained = 0.0
 		for i in range(len(dates)):
+			#misclassified case
+			if d_predictions[economist][i] == -1:
+				curr_error += d_weights[dates[i]]
 
+			#correctly classified case
+			elif d_predictions[economist][i] == 1:
+				curr_correct+= d_weights[dates[i]]
+
+			#abstaining case
+			elif d_predictions[economist][i] == 0:
+				curr_abstained += d_weights[dates[i]]
+
+		d_error[economist] = curr_error
+		d_w_abstain[economist] = curr_abstained
+		d_w_correct[economist] = curr_correct
+
+		if curr_error == 0 or curr_error == 1:
+			del d_predictions[economist]
+			del d_error[economist]
+			del d_w_correct[economist]
+			del d_w_abstain[economist]
+			if economist in d_Z.keys():
+				del d_Z[economist]
+
+def compute_errors2():
+	for economist in d_predictions.keys():
+		curr_error = 0.0
+		curr_correct = 0.0
+		curr_abstained = 0.0
+		for i in range(len(dates)-1):
 			#misclassified case
 			if d_predictions[economist][i] == -1:
 				curr_error += d_weights[dates[i]]
@@ -293,8 +359,8 @@ def show_HFinal():
 
 
 if __name__ == '__main__':
-	get_data("ADP CHNG Index.csv",1)
-	compute_errors()
+	get_data("ADP CHNG Index.csv",3)
+	compute_errors2()
 	compute_D_Z()
 	invert_bad_economists()
 	boost(50)
