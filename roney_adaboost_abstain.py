@@ -9,6 +9,9 @@ import random
 #def reshuffle()
 #def train_on_future_economists_only
 
+
+
+
 def get_data(filename=str,KFold = 1):
 	''' 
 	Collects the data from the master file
@@ -16,6 +19,7 @@ def get_data(filename=str,KFold = 1):
 	Keys are economists
 	Values are List of lists containing predictions.
 	'''
+
 	global d_predictions#by economist!
 	global d_weights#by date!
 	global d_error#by economist!
@@ -29,7 +33,12 @@ def get_data(filename=str,KFold = 1):
 	global d_testpredictions
 	global prediction_table
 	global d_HofX
+	global test_date
+	global used_testdate
+	global wins
 
+	wins = []
+	used_testdate = []
 	d_predictions = {}#by economist
 	d_weights = {} #by date!
 	#For each economist we want to know the weight of the
@@ -46,32 +55,35 @@ def get_data(filename=str,KFold = 1):
 	train_dates = []
 	dates = []
 
+
+
+
 	if KFold == 1:
 		with open(filename, "rU") as f:
-		    reader = csv.reader(f, delimiter="\t")
-		    for i, line in enumerate(reader):
+			reader = csv.reader(f, delimiter="\t")
+			for i, line in enumerate(reader):
 
-		    	#Get weightings by date!
-		    	if i == 0:
-		    		continue
-		    	if i == 1:
-		    		dates.extend(line[0].split(','))
-		    		dates.pop(0)
-		    		dates = filter(lambda x: len(x)>0 , dates)
-		    		avg_weight = 1/len(dates)
-		    		for date in dates:
-		    			d_weights[date] = avg_weight
-		    		continue
+				#Get weightings by date!
+				if i == 0:
+					continue
+				if i == 1:
+					dates.extend(line[0].split(','))
+					dates.pop(0)
+					dates = filter(lambda x: len(x)>0 , dates)
+					avg_weight = 1/len(dates)
+					for date in dates:
+						d_weights[date] = avg_weight
+					continue
 
-		    	#Get predictions by Economist
-		    	predictions = line[0].split(',')
-		    	economist = predictions[0]
-		    	predictions.pop(0)
-		    	predictions = filter(lambda x: x!='' and x!=' ' , predictions)
-		    	predictions = [int(j) for j in predictions]
-		    	d_predictions[economist] = predictions
+				#Get predictions by Economist
+				predictions = line[0].split(',')
+				economist = predictions[0]
+				predictions.pop(0)
+				predictions = filter(lambda x: x!='' and x!=' ' , predictions)
+				predictions = [int(j) for j in predictions]
+				d_predictions[economist] = predictions
 
-	#This is the case where we are dividing the data up into
+			#This is the case where we are dividing the data up into
 	#training data and test data.
 
 	#I think we should forget the 2-Fold CV, and do (n-1) points for training data and 1 test point.
@@ -83,14 +95,14 @@ def get_data(filename=str,KFold = 1):
 		Values are List of lists containing predictions.
 		'''
 		with open(filename, "rU") as f:
-		    reader = csv.reader(f, delimiter="\t")
-		    for i, line in enumerate(reader):
+			reader = csv.reader(f, delimiter="\t")
+			for i, line in enumerate(reader):
 
-		    	#Get weightings by date!
-		    	if i == 0:
-		    		continue
-		    	if i == 1:
-		    		#need to clear commas from names in Sheet
+				#Get weightings by date!
+				if i == 0:
+					continue
+				if i == 1:
+					#need to clear commas from names in Sheet
 					prediction_table = np.genfromtxt(filename, dtype=None, delimiter=',')
 					prediction_table[1] = ['nan'] + range(len(prediction_table[2])-1)
 					prediction_table = np.delete(prediction_table, (0), axis=0)
@@ -111,19 +123,19 @@ def get_data(filename=str,KFold = 1):
 						d_weights[date] = avg_weight
 					continue
 
-		    	#Get predictions by Economist
-		    	predictions = line[0].split(',')
-		    	economist = predictions[0]
-		    	# predictions.pop(0)
-		    	# predictions = filter(lambda x: x!='' and x!=' ' , predictions)
-		    	# predictions = [int(j) for j in predictions]
+				#Get predictions by Economist
+				predictions = line[0].split(',')
+				economist = predictions[0]
+				# predictions.pop(0)
+				# predictions = filter(lambda x: x!='' and x!=' ' , predictions)
+				# predictions = [int(j) for j in predictions]
 
-		    	predictions = prediction_table[i-1]
-		    	predictions = [int(j) for j in predictions]
-		    	train_predictions = predictions[:int(len(predictions)/2)]
-		    	test_predictions = predictions[int(len(predictions)/2):len(predictions)]
-		    	d_predictions[economist] = train_predictions
-		    	d_testpredictions[economist] = test_predictions
+				predictions = prediction_table[i-1]
+				predictions = [int(j) for j in predictions]
+				train_predictions = predictions[:int(len(predictions)/2)]
+				test_predictions = predictions[int(len(predictions)/2):len(predictions)]
+				d_predictions[economist] = train_predictions
+				d_testpredictions[economist] = test_predictions
 
 	if KFold == 3:
 		''' 
@@ -133,26 +145,27 @@ def get_data(filename=str,KFold = 1):
 		Values are List of lists containing predictions.
 		'''
 		with open(filename, "rU") as f:
-		    reader = csv.reader(f, delimiter="\t")
-		    for i, line in enumerate(reader):
+			reader = csv.reader(f, delimiter="\t")
+			for i, line in enumerate(reader):
 
-		    	#Get weightings by date!
-		    	if i == 0:
-		    		continue
-		    	if i == 1:
-		    		#need to clear commas from names in Sheet
+				#Get weightings by date!
+				if i == 0:
+					continue
+				if i == 1:
+					#need to clear commas from names in Sheet
 					prediction_table = np.genfromtxt(filename, dtype=None, delimiter=',')
 					prediction_table[1] = ['nan'] + range(len(prediction_table[2])-1)
 					print prediction_table[1]
 					print prediction_table
 					prediction_table = np.delete(prediction_table, (0), axis=0)
 					prediction_table = np.delete(prediction_table, (0), axis=1)
+					print prediction_table
 					np.random.shuffle(prediction_table.T)
 
 					dates.extend(line[0].split(','))
 					dates.pop(0)
 					dates = filter(lambda x: len(x)>0 , dates)
-					dates = [dates[int(i)] for i in prediction_table[0]]
+					dates = [dates[int(x)] for x in prediction_table[0]]
 
 					test_date = dates[-1]
 					dates.pop()
@@ -166,15 +179,15 @@ def get_data(filename=str,KFold = 1):
 						d_weights[date] = avg_weight
 					continue
 
-		    	#Get predictions by Economist
-		    	predictions = line[0].split(',')
-		    	economist = predictions[0]
-		    	predictions = prediction_table[i-1]
-		    	predictions = [int(j) for j in predictions]
-		    	train_predictions = predictions[:len(predictions)-1]
-		    	test_prediction = int(predictions[-1])
-		    	d_predictions[economist] = train_predictions
-		    	d_testpredictions[economist] = test_prediction
+				#Get predictions by Economist
+				predictions = line[0].split(',')
+				economist = predictions[0]
+				predictions = prediction_table[i-1]
+				predictions = [int(j) for j in predictions]
+				train_predictions = predictions[:len(predictions)-1]
+				test_prediction = int(predictions[-1])
+				d_predictions[economist] = train_predictions
+				d_testpredictions[economist] = test_prediction
 
 	    	for economist in d_testpredictions.keys():
 				if int(d_testpredictions[economist]) == 0:
@@ -182,26 +195,67 @@ def get_data(filename=str,KFold = 1):
 					del d_testpredictions[economist]
 
 
+	if KFold == 4:
+		''' 
+		Collects the data from the master file
+		cleans it in the form of a dictionary of historical estimates.
+		Keys are economists
+		Values are List of lists containing predictions.
+		'''
+		#need to clear commas from names in Sheet
+		prediction_table = np.genfromtxt(filename, dtype=None, delimiter=',')
+		prediction_table[1] = ['Dates'] + range(len(prediction_table[2])-1)
+		#print prediction_table[1]
+		#print prediction_table
+		prediction_table = np.delete(prediction_table, (0), axis=0)
+		#prediction_table = np.delete(prediction_table, (0), axis=1)
+		#print prediction_table
+		np.random.shuffle(prediction_table.T)
 
-def test_against_Actuals():
-	actual_direction = int(prediction_table[2][-1])
-	h_fin = 0
+		dates = prediction_table[0]
+		dates = filter(lambda x: len(x)>0 , dates)
+		for day in dates:
+			if not day.isdigit():
+				dates.pop(dates.index(day))
 
-	print actual_direction
-	for economist in d_alpha.keys():
-		if actual_direction == 1:
-			if d_testpredictions[economist] == -1:
-				h_fin += -1*d_alpha[economist]
-			elif d_testpredictions[economist] == 1:
-				h_fin += 1*d_alpha[economist]
-		elif actual_direction == -1:
-			print 'here'
-			if d_testpredictions[economist] == -1:
-				h_fin += 1*d_alpha[economist]
-			elif d_testpredictions[economist] == 1:
-				h_fin += -1*d_alpha[economist]
-	print "H_fin: ", h_fin
-	print actual_direction
+		dates = [int(x) for x in dates]
+
+		test_date = dates[-1]
+
+		test_table = prediction_table.T[-1]
+		avg_weight = 1/len(dates)
+		for date in dates:
+			d_weights[date] = avg_weight
+
+		#Get predictions by Economist
+		for row in range(1, prediction_table.shape[0]):
+			predictions = []
+			economist = ''
+			for item in prediction_table[row]:
+				#we consider '-1' the shortest string which is a direction number
+				if len(item)<=2:
+					#notice that this is keeping in order!
+					predictions.append(int(item)) #add it to the predictions as an integer
+				else:
+					#A string that is not a number MUST be the Economist's name
+					economist = item
+			#We take everything except the last item as the training data
+			train_predictions = predictions[:len(predictions)-1]
+			#We use only the last column of the prediction_table as test data. 
+			test_prediction = int(predictions[-1])
+			d_predictions[economist] = train_predictions
+			d_testpredictions[economist] = test_prediction
+
+		#We only want to train on the economists who have existing predictions on the test data. Otherwise it's
+		#useless to us.
+		for economist in d_testpredictions.keys():
+			#If they didn't make a prediction then we have them listed as 0.
+			if int(d_testpredictions[economist]) == 0:
+				del d_predictions[economist]
+				del d_testpredictions[economist]
+		print d_testpredictions.keys()
+
+
 
 
 def chunkIt(seq, num):
@@ -406,15 +460,41 @@ def show_HFinal():
 	print HFinal
 	print "Sum of Alpha Values: ", sum(d_alpha.values())
 
+def test_against_Actuals():
+	actual_direction = int(prediction_table[1][-1])
+	h_fin = 0.0
+
+	for economist in d_alpha.keys():
+		if actual_direction == 0:
+			print "Actual == Consensus"
+			print test_date
+			break
+		elif actual_direction == 1:
+			if d_testpredictions[economist] == -1:
+				h_fin += -1*d_alpha[economist]
+			elif d_testpredictions[economist] == 1:
+				h_fin += 1*d_alpha[economist]
+		elif actual_direction == -1:
+			if d_testpredictions[economist] == -1:
+				h_fin += 1*d_alpha[economist]
+			elif d_testpredictions[economist] == 1:
+				h_fin += -1*d_alpha[economist]
+	print "H_fin: ", h_fin
+	print "Actual Direction:", actual_direction
+
+
 
 if __name__ == '__main__':
-	get_data("ADP CHNG Index.csv",3)
+	get_data("CONCCONF Index.csv",4)
 	print "posterity"
 	print d_predictions
 	print d_testpredictions
+	print prediction_table[1]
 	compute_errors2()
 	compute_D_Z()
 	invert_bad_economists()
 	boost(50)
 	show_HFinal()
 	test_against_Actuals()
+
+
