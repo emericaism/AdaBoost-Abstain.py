@@ -172,18 +172,22 @@ def get_data(filename=str,KFold = 1):
 		    	predictions = prediction_table[i-1]
 		    	predictions = [int(j) for j in predictions]
 		    	train_predictions = predictions[:len(predictions)-1]
-		    	test_prediction = predictions[-1]
+		    	test_prediction = int(predictions[-1])
 		    	d_predictions[economist] = train_predictions
 		    	d_testpredictions[economist] = test_prediction
 
+	    	for economist in d_testpredictions.keys():
+				if int(d_testpredictions[economist]) == 0:
+					del d_predictions[economist]
+					del d_testpredictions[economist]
 
-    	for economist in d_testpredictions.keys():
-			if d_testpredictions[economist] == 0:
-				del d_predictions[economist]
+
 
 def test_against_Actuals():
-	actual_direction = prediction_table[2][-1]
+	actual_direction = int(prediction_table[2][-1])
 	h_fin = 0
+
+	print actual_direction
 	for economist in d_alpha.keys():
 		if actual_direction == 1:
 			if d_testpredictions[economist] == -1:
@@ -191,6 +195,7 @@ def test_against_Actuals():
 			elif d_testpredictions[economist] == 1:
 				h_fin += 1*d_alpha[economist]
 		elif actual_direction == -1:
+			print 'here'
 			if d_testpredictions[economist] == -1:
 				h_fin += 1*d_alpha[economist]
 			elif d_testpredictions[economist] == 1:
@@ -219,6 +224,7 @@ def invert_bad_economists():
 			del d_Z[economist]
 			del d_w_correct[economist]
 			del d_w_abstain[economist]
+			del d_testpredictions[economist]
 
 
 		elif d_error[economist] > d_w_correct[economist]:
@@ -230,6 +236,7 @@ def invert_bad_economists():
 			d_w_correct[not_economist] = d_error[economist]
 			d_w_abstain[not_economist] = d_w_abstain[economist]
 			d_predictions[not_economist] = inverted_predictions
+			d_testpredictions[not_economist] = d_testpredictions[economist]*-1
 			d_Z[not_economist] = d_Z[economist]
 
 			del d_error[economist]
@@ -237,6 +244,7 @@ def invert_bad_economists():
 			del d_Z[economist]
 			del d_w_correct[economist]
 			del d_w_abstain[economist]
+			del d_testpredictions[economist]
 
 def keywithminval(d1):
 	temp = d1.copy()
@@ -401,6 +409,9 @@ def show_HFinal():
 
 if __name__ == '__main__':
 	get_data("ADP CHNG Index.csv",3)
+	print "posterity"
+	print d_predictions
+	print d_testpredictions
 	compute_errors2()
 	compute_D_Z()
 	invert_bad_economists()
