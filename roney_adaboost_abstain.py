@@ -204,70 +204,74 @@ def get_data(filename=str,KFold = 1):
 		'''
 		#need to clear commas from names in Sheet
 		prediction_table = np.genfromtxt(filename, dtype=None, delimiter=',')
-		prediction_table[1] = ['Dates'] + range(len(prediction_table[2])-1)
-		#print prediction_table[1]
-		#print prediction_table
+		#Remove empty row at top
 		prediction_table = np.delete(prediction_table, (0), axis=0)
-		#prediction_table = np.delete(prediction_table, (0), axis=1)
-		#print prediction_table
-		np.random.shuffle(prediction_table.T)
+		prediction_table[0] = ['Dates'] + range(len(prediction_table[0])-1)
 
-		dates = prediction_table[0]
-		dates = filter(lambda x: len(x)>0 , dates)
-		for day in dates:
-			if not day.isdigit():
-				dates.pop(dates.index(day))
+def reshuffle_data():
+	np.random.shuffle(prediction_table.T)
 
-		dates = [int(x) for x in dates]
+def collect_data():
+	global original_dates
+	original_dates = []
+	original_dates = prediction_table[0]
+	#Was having a problem with extra elements at end which were '' empty strings. Filtering is a quick-fix.
+	original_dates = filter(lambda x: len(x)>0 , original_dates)
+	for day in original_dates:
+		#We search for the string 'Dates'
+		if not day.isdigit():
+			original_dates.pop(original_dates.index(day))
+	original_dates = [int(x) for x in original_dates]
 
-		test_date = dates[-1]
+def organize_by_testDate(this_date=int):
+	test_date = this_date
+	dates = original_dates
+	indx = dates.index(this_date)
+	dates.pop(indx)
 
-		test_table = prediction_table.T[-1]
-		avg_weight = 1/len(dates)
-		for date in dates:
-			d_weights[date] = avg_weight
+	d_predictions.clear()
+	d_testpredictions.clear()
+	d_Z.clear()
+	d_weights.clear()
+	d_error.clear()
+	d_alpha.clear()
+	d_w_correct.clear()
+	d_w_abstain.clear()
 
-		#Get predictions by Economist
-		for row in range(1, prediction_table.shape[0]):
-			predictions = []
-			economist = ''
-			for item in prediction_table[row]:
-				#we consider '-1' the shortest string which is a direction number
-				if len(item)<=2:
-					#notice that this is keeping in order!
-					predictions.append(int(item)) #add it to the predictions as an integer
-				else:
-					#A string that is not a number MUST be the Economist's name
-					economist = item
-			#We take everything except the last item as the training data
-			train_predictions = predictions[:len(predictions)-1]
-			#We use only the last column of the prediction_table as test data. 
-			test_prediction = int(predictions[-1])
-			d_predictions[economist] = train_predictions
-			d_testpredictions[economist] = test_prediction
+	test_table = prediction_table.T[-1]
+	avg_weight = 1/len(dates)
+	for date in dates:
+		d_weights[date] = avg_weight
 
-		#We only want to train on the economists who have existing predictions on the test data. Otherwise it's
-		#useless to us.
-		for economist in d_testpredictions.keys():
-			#If they didn't make a prediction then we have them listed as 0.
-			if int(d_testpredictions[economist]) == 0:
-				del d_predictions[economist]
-				del d_testpredictions[economist]
-		print d_testpredictions.keys()
+	#Get predictions by Economist
+	#Start at row 2 because we dont want to include Actual Direction!
+	for row in range(2, prediction_table.shape[0]):
+		predictions = []
+		economist = ''
+		for item in prediction_table[row]:
+			#we consider '-1' the shortest string which is a direction number
+			if len(item)<=2:
+				#notice that this is keeping in order!
+				predictions.append(int(item)) #add it to the predictions as an integer
+			else:
+				#A string that is not a number MUST be the Economist's name
+				economist = item
 
+		#We take everything except the specified item as the training data
+		test_prediction = predictions[indx]
+		predictions.pop(indx)
+		train_predictions = predictions
 
+		d_predictions[economist] = train_predictions
+		d_testpredictions[economist] = test_prediction
 
-
-def chunkIt(seq, num):
-	avg = len(seq) / float(num)
-	out = []
-	last = 0.0
-
-	while last < len(seq):
-		out.append(seq[int(last):int(last + avg)])
-		last += avg
-
-	return out
+	#We only want to train on the economists who have existing predictions on the test data. Otherwise it's
+	#useless to us.
+	for economist in d_testpredictions.keys():
+		#If they didn't make a prediction then we have them listed as 0.
+		if int(d_testpredictions[economist]) == 0:
+			del d_predictions[economist]
+			del d_testpredictions[economist]
 
 def invert_bad_economists():
 	for economist in d_error.keys():
@@ -330,8 +334,8 @@ def boost(rounds=int):
 			print "No more weak learners"
 			break
 		d_alpha[classifier_economist] = alpha
-		reweight_against2(classifier_economist)
-		compute_errors2()
+		reweight_against(classifier_economist)
+		compute_errors()
 		compute_D_Z()
 
 def reweight_against(economist=str):
@@ -479,22 +483,26 @@ def test_against_Actuals():
 				h_fin += 1*d_alpha[economist]
 			elif d_testpredictions[economist] == 1:
 				h_fin += -1*d_alpha[economist]
-	print "H_fin: ", h_fin
+	print "H_Final: ", h_fin
 	print "Actual Direction:", actual_direction
+	if actual_direction*h_fin>0:
+		print "Correct"
+	else:
+		print "Wrong"
 
 
 
 if __name__ == '__main__':
 	get_data("CONCCONF Index.csv",4)
-	print "posterity"
-	print d_predictions
-	print d_testpredictions
-	print prediction_table[1]
-	compute_errors2()
-	compute_D_Z()
-	invert_bad_economists()
-	boost(50)
-	show_HFinal()
-	test_against_Actuals()
+	collect_data()
+	print original_dates
+	for w in original_dates:
+		organize_by_testDate(w)
+		compute_errors()
+		compute_D_Z()
+		invert_bad_economists()
+		boost(50)
+		show_HFinal()
+		test_against_Actuals()
 
 
