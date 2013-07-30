@@ -325,9 +325,7 @@ def test_against_Actuals():
 		print "Wrong"
 		losses.append(test_date)
 
-
-
-if __name__ == '__main__':
+def workhorsePipeline():
 	d_results = {}
 	files = glob.glob('*.csv')
 	global file1
@@ -353,6 +351,10 @@ if __name__ == '__main__':
 		print "Losses:", losses
 		print "Win %age",len(wins)/(len(wins)+len(losses))
 		d_results[file1] = len(wins)/(len(wins)+len(losses))
-	print d_results
+	for k in d_results.keys():
+		print k,d_results[k]
 
+
+if __name__ == '__main__':
+	workhorsePipeline()
 
