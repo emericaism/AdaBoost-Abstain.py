@@ -37,8 +37,9 @@ def get_data(filename=str,KFold = 1):
 	global test_date
 	global used_testdate
 	global wins
+	global losses
 
-
+	losses = []
 	wins = []
 	used_testdate = []
 	d_predictions = {}#by economist
@@ -228,6 +229,7 @@ def collect_data():
 def organize_by_testDate(this_date=int):
 	global indx
 	global dates
+	global test_date
 	dates = []
 
 	test_date = this_date
@@ -280,12 +282,8 @@ def organize_by_testDate(this_date=int):
 		if int(d_testpredictions[economist]) == 0:
 			del d_predictions[economist]
 			del d_testpredictions[economist]
-	#print d_predictions
-	print "Dates",dates
 	compute_errors()
-	
 	compute_D_Z()
-	#print d_predictions
 	invert_bad_economists()
 
 def invert_bad_economists():
@@ -403,7 +401,6 @@ def compute_errors():
 		curr_correct = 0.0
 		curr_abstained = 0.0
 		for i in range(len(dates)):
-			#print "econo prod",d_predictions[economist]
 			#misclassified case
 			if d_predictions[economist][i] == -1:
 				curr_error += d_weights[dates[i]]
@@ -463,7 +460,6 @@ def compute_errors2():
 
 
 def compute_D_Z():
-	print d_predictions
 	for economist in d_predictions.keys():
 		#Z = W_a + 2*sqrt(W_c * W_m)
 		Z = d_w_abstain[economist] + 2*math.sqrt(d_w_correct[economist]*d_error[economist])
@@ -489,7 +485,6 @@ def show_HFinal():
 def test_against_Actuals():
 	actual_direction = int(prediction_table[1][indx+1])
 	h_fin = 0.0
-
 	for economist in d_alpha.keys():
 		if actual_direction == 0:
 			print "Actual == Consensus"
@@ -509,8 +504,10 @@ def test_against_Actuals():
 	print "Actual Direction:", actual_direction
 	if actual_direction*h_fin>0:
 		print "Correct"
+		wins.append(test_date)
 	else:
 		print "Wrong"
+		losses.append(test_date)
 
 
 
@@ -523,5 +520,8 @@ if __name__ == '__main__':
 		boost(50)
 		show_HFinal()
 		test_against_Actuals()
+	print "Wins:", wins
+	print "Losses:", losses
+	print "Win %age",len(wins)/(len(wins)+len(losses))
 
 
