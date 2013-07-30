@@ -225,15 +225,15 @@ def collect_data():
 		if not day.isdigit():
 			original_dates.pop(original_dates.index(day))
 	original_dates = [int(x) for x in original_dates]
+	original_dates = range(len(prediction_table[0])-1)
 
 def organize_by_testDate(this_date=int):
 	global indx
 	global dates
 	global test_date
-	dates = []
+	dates = range(len(prediction_table[0])-1)
 
 	test_date = this_date
-	dates = original_dates
 	indx = dates.index(this_date)
 	dates.pop(indx)
 
@@ -288,7 +288,7 @@ def organize_by_testDate(this_date=int):
 
 def invert_bad_economists():
 	for economist in d_error.keys():
-		if (d_error[economist] == d_w_correct[economist]) or (d_error[economist] == 0) or (d_error[economist] == 1):
+		if (d_error[economist] == d_w_correct[economist]) or (d_error[economist] == 0.0) or (d_error[economist] == 1):
 			#if an economist has exactly 50% error, his predictions are useless as a weak classifier
 			#Also AdaBoost only works on noisy data. Economists who are perfect or 100% (or 0%) in their
 			#predictions are not considered noisy, and we can't use them.
@@ -328,8 +328,25 @@ def keywithminval(d1):
 	k=list(temp.keys())
 	return k[v.index(min(v))]
 
+
+def delete_Noiseless_Economists():
+	#Manipulating a dictionary while it is being iterated through: Bad practice! Have to run it twice to make it work :-/
+	for economist in d_error.keys():
+		if (d_error[economist] == d_w_correct[economist]) or (d_error[economist] == 0.0) or (d_error[economist] == 1):
+			#if an economist has exactly 50% error, his predictions are useless as a weak classifier
+			#Also AdaBoost only works on noisy data. Economists who are perfect or 100% (or 0%) in their
+			#predictions are not considered noisy, and we can't use them.
+			del d_error[economist]
+			del d_predictions[economist]
+			del d_Z[economist]
+			del d_w_correct[economist]
+			del d_w_abstain[economist]
+			del d_testpredictions[economist]
+
 def boost(rounds=int):
 	global best_weak_classifier
+	delete_Noiseless_Economists()
+	print "TestDATE",test_date
 	for iteration in range(1,rounds+1):
 		print "Round: ", iteration
 		classifier_economist = keywithminval(d_Z)
@@ -375,26 +392,6 @@ def reweight_against(economist=str):
 
 	#recompute W_A, W_C, and W_M (weight of abstains, corrects, and misclassifieds)
 
-def reweight_against2(economist=str):
-	predictions = d_predictions[economist]
-	incorrect_divisor = d_w_abstain[economist] * math.sqrt(d_error[economist]/d_w_correct[economist]) + 2*d_error[economist]
-	correct_divisor = d_w_abstain[economist] * math.sqrt(d_w_correct[economist]/d_error[economist]) + 2*d_w_correct[economist]
-	abstain_divisor = d_Z[economist]
-	#reassign weights to each date
-	for i in range(len(dates)-1):
-		day = dates[i]
-
-		if predictions[i] == 1:
-			d_weights[day] = d_weights[day]/float(correct_divisor)
-			#print 'He was Correct: ', d_weights[day]
-
-		elif predictions[i] == -1:
-			d_weights[day] = d_weights[day]/float(incorrect_divisor)
-			#print 'He was Wrong: ', d_weights[day]
-
-		elif predictions[i] == 0:
-			d_weights[day] = d_weights[day]/float(abstain_divisor)
-
 def compute_errors():
 	for economist in d_predictions.keys():
 		curr_error = 0.0
@@ -422,36 +419,6 @@ def compute_errors():
 			#print economist
 			del d_predictions[economist]
 			del d_testpredictions[economist]
-			del d_error[economist]
-			del d_w_correct[economist]
-			del d_w_abstain[economist]
-			if economist in d_Z.keys():
-				del d_Z[economist]
-
-def compute_errors2():
-	for economist in d_predictions.keys():
-		curr_error = 0.0
-		curr_correct = 0.0
-		curr_abstained = 0.0
-		for i in range(len(dates)-1):
-			#misclassified case
-			if d_predictions[economist][i] == -1:
-				curr_error += d_weights[dates[i]]
-
-			#correctly classified case
-			elif d_predictions[economist][i] == 1:
-				curr_correct+= d_weights[dates[i]]
-
-			#abstaining case
-			elif d_predictions[economist][i] == 0:
-				curr_abstained += d_weights[dates[i]]
-
-		d_error[economist] = curr_error
-		d_w_abstain[economist] = curr_abstained
-		d_w_correct[economist] = curr_correct
-
-		if curr_error == 0 or curr_error == 1:
-			del d_predictions[economist]
 			del d_error[economist]
 			del d_w_correct[economist]
 			del d_w_abstain[economist]
@@ -513,13 +480,20 @@ def test_against_Actuals():
 
 if __name__ == '__main__':
 	get_data("CONCCONF Index.csv",4)
-	collect_data()
-	print original_dates
-	for w in original_dates:
+	for w in range(len(prediction_table[0])-1):
 		organize_by_testDate(w)
 		boost(50)
 		show_HFinal()
 		test_against_Actuals()
+
+		d_predictions.clear()
+		d_testpredictions.clear()
+		d_Z.clear()
+		d_weights.clear()
+		d_error.clear()
+		d_alpha.clear()
+		d_w_correct.clear()
+		d_w_abstain.clear()
 	print "Wins:", wins
 	print "Losses:", losses
 	print "Win %age",len(wins)/(len(wins)+len(losses))
