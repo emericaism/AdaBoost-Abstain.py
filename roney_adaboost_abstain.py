@@ -4,7 +4,7 @@ import numpy as np
 import operator
 import math
 import random
-
+import glob
 
 #def reshuffle()
 #def train_on_future_economists_only
@@ -12,7 +12,7 @@ import random
 
 
 
-def get_data(filename=str,KFold = 1):
+def get_data(filename=str):
 	''' 
 	Collects the data from the master file
 	cleans it in the form of a dictionary of historical estimates.
@@ -60,172 +60,20 @@ def get_data(filename=str,KFold = 1):
 
 
 
-
-	if KFold == 1:
-		with open(filename, "rU") as f:
-			reader = csv.reader(f, delimiter="\t")
-			for i, line in enumerate(reader):
-
-				#Get weightings by date!
-				if i == 0:
-					continue
-				if i == 1:
-					dates.extend(line[0].split(','))
-					dates.pop(0)
-					dates = filter(lambda x: len(x)>0 , dates)
-					avg_weight = 1/len(dates)
-					for date in dates:
-						d_weights[date] = avg_weight
-					continue
-
-				#Get predictions by Economist
-				predictions = line[0].split(',')
-				economist = predictions[0]
-				predictions.pop(0)
-				predictions = filter(lambda x: x!='' and x!=' ' , predictions)
-				predictions = [int(j) for j in predictions]
-				d_predictions[economist] = predictions
-
-			#This is the case where we are dividing the data up into
-	#training data and test data.
-
-	#I think we should forget the 2-Fold CV, and do (n-1) points for training data and 1 test point.
-	if KFold == 2:
-		''' 
-		Collects the data from the master file
-		cleans it in the form of a dictionary of historical estimates.
-		Keys are economists
-		Values are List of lists containing predictions.
-		'''
-		with open(filename, "rU") as f:
-			reader = csv.reader(f, delimiter="\t")
-			for i, line in enumerate(reader):
-
-				#Get weightings by date!
-				if i == 0:
-					continue
-				if i == 1:
-					#need to clear commas from names in Sheet
-					prediction_table = np.genfromtxt(filename, dtype=None, delimiter=',')
-					prediction_table[1] = ['nan'] + range(len(prediction_table[2])-1)
-					prediction_table = np.delete(prediction_table, (0), axis=0)
-					prediction_table = np.delete(prediction_table, (0), axis=1)
-					np.random.shuffle(prediction_table.T)
-					dates.extend(line[0].split(','))
-					dates.pop(0)
-					dates = filter(lambda x: len(x)>0 , dates)
-					dates = [dates[int(i)] for i in prediction_table[0]]
-
-
-					#divide into two lists, training data and test data
-					[train_dates,test_dates] = chunkIt(dates,2)
-
-					dates = train_dates
-					avg_weight = 1/len(dates)
-					for date in dates:
-						d_weights[date] = avg_weight
-					continue
-
-				#Get predictions by Economist
-				predictions = line[0].split(',')
-				economist = predictions[0]
-				# predictions.pop(0)
-				# predictions = filter(lambda x: x!='' and x!=' ' , predictions)
-				# predictions = [int(j) for j in predictions]
-
-				predictions = prediction_table[i-1]
-				predictions = [int(j) for j in predictions]
-				train_predictions = predictions[:int(len(predictions)/2)]
-				test_predictions = predictions[int(len(predictions)/2):len(predictions)]
-				d_predictions[economist] = train_predictions
-				d_testpredictions[economist] = test_predictions
-
-	if KFold == 3:
-		''' 
-		Collects the data from the master file
-		cleans it in the form of a dictionary of historical estimates.
-		Keys are economists
-		Values are List of lists containing predictions.
-		'''
-		with open(filename, "rU") as f:
-			reader = csv.reader(f, delimiter="\t")
-			for i, line in enumerate(reader):
-
-				#Get weightings by date!
-				if i == 0:
-					continue
-				if i == 1:
-					#need to clear commas from names in Sheet
-					prediction_table = np.genfromtxt(filename, dtype=None, delimiter=',')
-					prediction_table[1] = ['nan'] + range(len(prediction_table[2])-1)
-					print prediction_table[1]
-					print prediction_table
-					prediction_table = np.delete(prediction_table, (0), axis=0)
-					prediction_table = np.delete(prediction_table, (0), axis=1)
-					print prediction_table
-					np.random.shuffle(prediction_table.T)
-
-					dates.extend(line[0].split(','))
-					dates.pop(0)
-					dates = filter(lambda x: len(x)>0 , dates)
-					dates = [dates[int(x)] for x in prediction_table[0]]
-
-					test_date = dates[-1]
-					dates.pop()
-
-					test_table = prediction_table.T[-1]
-					prediction_table = np.delete(prediction_table,(len(prediction_table[0])-1), axis=1)
-
-					avg_weight = 1/len(dates)
-					#print len(dates)
-					for date in dates:
-						d_weights[date] = avg_weight
-					continue
-
-				#Get predictions by Economist
-				predictions = line[0].split(',')
-				economist = predictions[0]
-				predictions = prediction_table[i-1]
-				predictions = [int(j) for j in predictions]
-				train_predictions = predictions[:len(predictions)-1]
-				test_prediction = int(predictions[-1])
-				d_predictions[economist] = train_predictions
-				d_testpredictions[economist] = test_prediction
-
-	    	for economist in d_testpredictions.keys():
-				if int(d_testpredictions[economist]) == 0:
-					del d_predictions[economist]
-					del d_testpredictions[economist]
-
-
-	if KFold == 4:
-		''' 
-		Collects the data from the master file
-		cleans it in the form of a dictionary of historical estimates.
-		Keys are economists
-		Values are List of lists containing predictions.
-		'''
-		#need to clear commas from names in Sheet
-		prediction_table = np.genfromtxt(filename, dtype=None, delimiter=',')
-		#Remove empty row at top
-		prediction_table = np.delete(prediction_table, (0), axis=0)
-		prediction_table[0] = ['Dates'] + range(len(prediction_table[0])-1)
+	''' 
+	Collects the data from the master file
+	cleans it in the form of a dictionary of historical estimates.
+	Keys are economists
+	Values are List of lists containing predictions.
+	'''
+	#need to clear commas from names in Sheet
+	prediction_table = np.genfromtxt(filename, dtype=None, delimiter=',')
+	#Remove empty row at top
+	prediction_table = np.delete(prediction_table, (0), axis=0)
+	prediction_table[0] = ['Dates'] + range(len(prediction_table[0])-1)
 
 def reshuffle_data():
 	np.random.shuffle(prediction_table.T)
-
-def collect_data():
-	global original_dates
-	original_dates = []
-	original_dates = prediction_table[0]
-	#Was having a problem with extra elements at end which were '' empty strings. Filtering is a quick-fix.
-	original_dates = filter(lambda x: len(x)>0 , original_dates)
-	for day in original_dates:
-		#We search for the string 'Dates'
-		if not day.isdigit():
-			original_dates.pop(original_dates.index(day))
-	original_dates = [int(x) for x in original_dates]
-	original_dates = range(len(prediction_table[0])-1)
 
 def organize_by_testDate(this_date=int):
 	global indx
@@ -349,6 +197,7 @@ def boost(rounds=int):
 	print "TestDATE",test_date
 	for iteration in range(1,rounds+1):
 		print "Round: ", iteration
+		print file1
 		classifier_economist = keywithminval(d_Z)
 		print classifier_economist
 
@@ -479,23 +328,29 @@ def test_against_Actuals():
 
 
 if __name__ == '__main__':
-	get_data("CONCCONF Index.csv",4)
-	for w in range(len(prediction_table[0])-1):
-		organize_by_testDate(w)
-		boost(50)
-		show_HFinal()
-		test_against_Actuals()
+	d_results = {}
+	files = glob.glob('*.csv')
+	global file1
+	for file1 in files:
+		get_data(file1)
+		for w in range(len(prediction_table[0])-1):
+			organize_by_testDate(w)
+			boost(50)
+			show_HFinal()
+			test_against_Actuals()
 
-		d_predictions.clear()
-		d_testpredictions.clear()
-		d_Z.clear()
-		d_weights.clear()
-		d_error.clear()
-		d_alpha.clear()
-		d_w_correct.clear()
-		d_w_abstain.clear()
-	print "Wins:", wins
-	print "Losses:", losses
-	print "Win %age",len(wins)/(len(wins)+len(losses))
+			d_predictions.clear()
+			d_testpredictions.clear()
+			d_Z.clear()
+			d_weights.clear()
+			d_error.clear()
+			d_alpha.clear()
+			d_w_correct.clear()
+			d_w_abstain.clear()
+		print "Wins:", wins
+		print "Losses:", losses
+		print "Win %age",len(wins)/(len(wins)+len(losses))
+		d_results[file1] = len(wins)/(len(wins)+len(losses))
+	print d_results
 
 
