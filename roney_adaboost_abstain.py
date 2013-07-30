@@ -355,6 +355,22 @@ def workhorsePipeline():
 		print k,d_results[k]
 
 
-if __name__ == '__main__':
-	workhorsePipeline()
+def test_New_Data():
+	get_data("CONCCONF Index.csv")
+	organize_by_testDate(last_column)
+	boost(50)
+	show_HFinal()
+	h_fin = 0.0
+	for economist in d_alpha.keys():
+		if d_testpredictions[economist] == 0:
+			continue
+		elif d_testpredictions[economist] == 1:
+			h_fin += 1*d_alpha[economist]
+		elif d_testpredictions[economist] == -1:
+			h_fin += -1*d_alpha[economist]
+	print "H_Final: ", h_fin
 
+
+if __name__ == '__main__':
+	#workhorsePipeline()
+	test_New_Data()
