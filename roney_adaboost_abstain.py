@@ -194,10 +194,10 @@ def delete_Noiseless_Economists():
 def boost(rounds=int):
 	global best_weak_classifier
 	delete_Noiseless_Economists()
-	print "TestDATE",test_date
+	print "Test Date: ",test_date
+	print file1
 	for iteration in range(1,rounds+1):
 		print "Round: ", iteration
-		print file1
 		classifier_economist = keywithminval(d_Z)
 		print classifier_economist
 
@@ -211,7 +211,7 @@ def boost(rounds=int):
 		alpha = (math.log(d_w_correct[classifier_economist]/d_error[classifier_economist]))/2
 		print "Alpha: ", alpha
 
-		if alpha < 0 or Z >= 1:
+		if (alpha < 0) or (Z >= 1) or (len(d_alpha.keys())>=len(d_Z.keys())):
 			print "No more weak learners"
 			break
 		d_alpha[classifier_economist] = alpha
@@ -332,6 +332,8 @@ if __name__ == '__main__':
 	files = glob.glob('*.csv')
 	global file1
 	for file1 in files:
+		if file1 == "RSTAXAG% Index.csv":
+			continue
 		get_data(file1)
 		for w in range(len(prediction_table[0])-1):
 			organize_by_testDate(w)
