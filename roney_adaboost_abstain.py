@@ -27,7 +27,8 @@ def get_data(filename=str,KFold = 1):
 	global d_w_abstain
 	global d_Z
 	global d_alpha#by economist!
-	global dates#list
+
+	global original_dates
 	global test_dates
 	global train_dates
 	global d_testpredictions
@@ -36,6 +37,7 @@ def get_data(filename=str,KFold = 1):
 	global test_date
 	global used_testdate
 	global wins
+
 
 	wins = []
 	used_testdate = []
@@ -224,6 +226,10 @@ def collect_data():
 	original_dates = [int(x) for x in original_dates]
 
 def organize_by_testDate(this_date=int):
+	global indx
+	global dates
+	dates = []
+
 	test_date = this_date
 	dates = original_dates
 	indx = dates.index(this_date)
@@ -238,13 +244,15 @@ def organize_by_testDate(this_date=int):
 	d_w_correct.clear()
 	d_w_abstain.clear()
 
-	test_table = prediction_table.T[-1]
 	avg_weight = 1/len(dates)
 	for date in dates:
 		d_weights[date] = avg_weight
 
+	#consider the string "Actual Direction" at the beginning
+	actual_direction = prediction_table[1][indx+1]
+
 	#Get predictions by Economist
-	#Start at row 2 because we dont want to include Actual Direction!
+	#Start at row 2 because we don't want to include Actual Direction!
 	for row in range(2, prediction_table.shape[0]):
 		predictions = []
 		economist = ''
@@ -272,11 +280,20 @@ def organize_by_testDate(this_date=int):
 		if int(d_testpredictions[economist]) == 0:
 			del d_predictions[economist]
 			del d_testpredictions[economist]
+	#print d_predictions
+	print "Dates",dates
+	compute_errors()
+	
+	compute_D_Z()
+	#print d_predictions
+	invert_bad_economists()
 
 def invert_bad_economists():
 	for economist in d_error.keys():
-		if d_error[economist] == d_w_correct[economist]:
+		if (d_error[economist] == d_w_correct[economist]) or (d_error[economist] == 0) or (d_error[economist] == 1):
 			#if an economist has exactly 50% error, his predictions are useless as a weak classifier
+			#Also AdaBoost only works on noisy data. Economists who are perfect or 100% (or 0%) in their
+			#predictions are not considered noisy, and we can't use them.
 			del d_error[economist]
 			del d_predictions[economist]
 			del d_Z[economist]
@@ -386,6 +403,7 @@ def compute_errors():
 		curr_correct = 0.0
 		curr_abstained = 0.0
 		for i in range(len(dates)):
+			#print "econo prod",d_predictions[economist]
 			#misclassified case
 			if d_predictions[economist][i] == -1:
 				curr_error += d_weights[dates[i]]
@@ -398,12 +416,15 @@ def compute_errors():
 			elif d_predictions[economist][i] == 0:
 				curr_abstained += d_weights[dates[i]]
 
+		#print curr_error
 		d_error[economist] = curr_error
 		d_w_abstain[economist] = curr_abstained
 		d_w_correct[economist] = curr_correct
 
 		if curr_error == 0 or curr_error == 1:
+			#print economist
 			del d_predictions[economist]
+			del d_testpredictions[economist]
 			del d_error[economist]
 			del d_w_correct[economist]
 			del d_w_abstain[economist]
@@ -442,6 +463,7 @@ def compute_errors2():
 
 
 def compute_D_Z():
+	print d_predictions
 	for economist in d_predictions.keys():
 		#Z = W_a + 2*sqrt(W_c * W_m)
 		Z = d_w_abstain[economist] + 2*math.sqrt(d_w_correct[economist]*d_error[economist])
@@ -465,7 +487,7 @@ def show_HFinal():
 	print "Sum of Alpha Values: ", sum(d_alpha.values())
 
 def test_against_Actuals():
-	actual_direction = int(prediction_table[1][-1])
+	actual_direction = int(prediction_table[1][indx+1])
 	h_fin = 0.0
 
 	for economist in d_alpha.keys():
@@ -498,9 +520,6 @@ if __name__ == '__main__':
 	print original_dates
 	for w in original_dates:
 		organize_by_testDate(w)
-		compute_errors()
-		compute_D_Z()
-		invert_bad_economists()
 		boost(50)
 		show_HFinal()
 		test_against_Actuals()
