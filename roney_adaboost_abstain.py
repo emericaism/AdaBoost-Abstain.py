@@ -195,7 +195,7 @@ def boost(rounds=int):
 	global best_weak_classifier
 	delete_Noiseless_Economists()
 	print "Test Date: ",test_date
-	print file1
+	#print file1
 	for iteration in range(1,rounds+1):
 		print "Round: ", iteration
 		classifier_economist = keywithminval(d_Z)
@@ -356,8 +356,9 @@ def workhorsePipeline():
 
 
 def test_New_Data():
-	get_data("CONCCONF Index.csv")
-	organize_by_testDate(last_column)
+	get_data("CONCCONF Index+July.csv")
+	organize_by_testDate(len(prediction_table[0])-2)#Try -1 if this doesnt work
+	#We are just pasting the novel data to the end of the CSV
 	boost(50)
 	show_HFinal()
 	h_fin = 0.0
